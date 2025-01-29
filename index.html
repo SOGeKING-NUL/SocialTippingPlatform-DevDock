@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Creator Tipping Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const CONTRACT_ADDRESS = "0x600f6dC81660738D098963D8918E019D1D019ca0"; // Replace with your contract address
+        const CONTRACT_ABI = [
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "AccessControlBadConfirmation",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "neededRole",
+				"type": "bytes32"
+			}
+		],
+		"name": "AccessControlUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address[]",
+				"name": "_creators",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "_amounts",
+				"type": "uint256[]"
+			}
+		],
+		"name": "batchTipCreators",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "FailedCall",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "balance",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "needed",
+				"type": "uint256"
+			}
+		],
+		"name": "InsufficientBalance",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address[]",
+				"name": "to",
+				"type": "address[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "amounts",
+				"type": "uint256[]"
+			}
+		],
+		"name": "BatchTipSent",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
+		],
+		"name": "CreatorRegistered",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "verifier",
+				"type": "address"
+			}
+		],
+		"name": "CreatorVerified",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "grantRole",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "pause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Paused",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newLimit",
+				"type": "uint256"
+			}
+		],
+		"name": "RateLimitUpdated",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			}
+		],
+		"name": "registerCreator",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "callerConfirmation",
+				"type": "address"
+			}
+		],
+		"name": "renounceRole",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "revokeRole",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "previousAdminRole",
+				"type": "bytes32"
+			},
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "newAdminRole",
+				"type": "bytes32"
+			}
+		],
+		"name": "RoleAdminChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			}
+		],
+		"name": "RoleGranted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			}
+		],
+		"name": "RoleRevoked",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "newLimit",
+				"type": "uint256"
+			}
+		],
+		"name": "setMaxTipAmount",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "message",
+				"type": "string"
+			}
+		],
+		"name": "tipCreator",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "message",
+				"type": "string"
+			}
+		],
+		"name": "TipSent",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "unpause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Unpaused",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			}
+		],
+		"name": "verifyCreator",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "WithdrawnTips",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawTips",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "ADMIN_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "creatorBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "creators",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "isRegistered",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "isVerified",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalTipsReceived",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lastWithdrawalTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "registrationTime",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "DEFAULT_ADMIN_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			}
+		],
+		"name": "getCreatorDetails",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "isRegistered",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "isVerified",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalTipsReceived",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "currentBalance",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "registrationTime",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "getRateLimit",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "currentUsage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "maxAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "resetTime",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			}
+		],
+		"name": "getRoleAdmin",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "role",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "hasRole",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maxTipAmount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "MODERATOR_ROLE",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "paused",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "RATE_LIMIT_PERIOD",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "rateLimits",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lastResetTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "currentUsage",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawalCooldown",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+        function App() {
+            const [account, setAccount] = React.useState(null);
+            const [contract, setContract] = React.useState(null);
+            const [creatorDetails, setCreatorDetails] = React.useState(null);
+            const [tipAmount, setTipAmount] = React.useState('');
+            const [message, setMessage] = React.useState('');
+            const [creatorName, setCreatorName] = React.useState('');
+            const [creatorAddress, setCreatorAddress] = React.useState('');
+            const [error, setError] = React.useState('');
+
+            React.useEffect(() => {
+                connectWallet();
+            }, []);
+
+            // Validate Ethereum address
+            function isValidEthereumAddress(address) {
+                return /^0x[a-fA-F0-9]{40}$/.test(address);
+            }
+
+            async function connectWallet() {
+                try {
+                    if (window.ethereum) {
+                        const provider = new ethers.BrowserProvider(window.ethereum);
+                        const signer = await provider.getSigner();
+                        const contractInstance = new ethers.Contract(
+                            CONTRACT_ADDRESS,
+                            CONTRACT_ABI,
+                            signer
+                        );
+                        setContract(contractInstance);
+                        setAccount(await signer.getAddress());
+                    } else {
+                        setError('Please install MetaMask!');
+                    }
+                } catch (err) {
+                    setError('Error connecting wallet: ' + err.message);
+                }
+            }
+
+            async function registerAsCreator(e) {
+                e.preventDefault();
+                try {
+                    const tx = await contract.registerCreator(creatorName);
+                    await tx.wait();
+                    alert('Successfully registered as creator!');
+                    setCreatorName('');
+                } catch (err) {
+                    setError('Error registering: ' + err.message);
+                }
+            }
+
+            async function sendTip(e) {
+                e.preventDefault();
+                try {
+                    if (!isValidEthereumAddress(creatorAddress)) {
+                        throw new Error('Invalid Ethereum address');
+                    }
+
+                    const tx = await contract.tipCreator(
+                        creatorAddress,
+                        message,
+                        { value: ethers.parseEther(tipAmount) }
+                    );
+                    await tx.wait();
+                    alert('Tip sent successfully!');
+                    setTipAmount('');
+                    setMessage('');
+                } catch (err) {
+                    setError('Error sending tip: ' + err.message);
+                }
+            }
+
+            async function withdrawTips() {
+                try {
+                    const tx = await contract.withdrawTips();
+                    await tx.wait();
+                    alert('Tips withdrawn successfully!');
+                } catch (err) {
+                    setError('Error withdrawing tips: ' + err.message);
+                }
+            }
+
+            async function getCreatorInfo(e) {
+                e.preventDefault();
+                try {
+                    if (!isValidEthereumAddress(creatorAddress)) {
+                        throw new Error('Invalid Ethereum address');
+                    }
+
+                    const details = await contract.getCreatorDetails(creatorAddress);
+                    setCreatorDetails({
+                        name: details[0],
+                        isRegistered: details[1],
+                        isVerified: details[2],
+                        totalTipsReceived: ethers.formatEther(details[3]),
+                        currentBalance: ethers.formatEther(details[4]),
+                        registrationTime: new Date(Number(details[5]) * 1000).toLocaleString()
+                    });
+                } catch (err) {
+                    setError('Error fetching creator details: ' + err.message);
+                }
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
+                    <div className="relative py-3 sm:max-w-xl sm:mx-auto">
+                        <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
+                            <div className="max-w-md mx-auto">
+                                <div className="divide-y divide-gray-200">
+                                    <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
+                                        <h1 className="text-2xl font-bold mb-8">Creator Tipping Platform</h1>
+                                        
+                                        {error && (
+                                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                                                {error}
+                                            </div>
+                                        )}
+
+                                        <div className="mb-8">
+                                            <h2 className="text-xl font-semibold mb-4">Register as Creator</h2>
+                                            <form onSubmit={registerAsCreator} className="space-y-4">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Creator Name"
+                                                    value={creatorName}
+                                                    onChange={(e) => setCreatorName(e.target.value)}
+                                                    className="w-full px-3 py-2 border rounded"
+                                                />
+                                                <button type="submit" className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                                    Register
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                        <div className="mb-8">
+                                            <h2 className="text-xl font-semibold mb-4">Send Tip</h2>
+                                            <form onSubmit={sendTip} className="space-y-4">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Creator Address"
+                                                    value={creatorAddress}
+                                                    onChange={(e) => setCreatorAddress(e.target.value)}
+                                                    className="w-full px-3 py-2 border rounded"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="Amount (ETH)"
+                                                    value={tipAmount}
+                                                    onChange={(e) => setTipAmount(e.target.value)}
+                                                    className="w-full px-3 py-2 border rounded"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Message"
+                                                    value={message}
+                                                    onChange={(e) => setMessage(e.target.value)}
+                                                    className="w-full px-3 py-2 border rounded"
+                                                />
+                                                <button type="submit" className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                                    Send Tip
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                        <div className="mb-8">
+                                            <h2 className="text-xl font-semibold mb-4">Creator Details</h2>
+                                            <form onSubmit={getCreatorInfo} className="space-y-4">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Creator Address"
+                                                    value={creatorAddress}
+                                                    onChange={(e) => setCreatorAddress(e.target.value)}
+                                                    className="w-full px-3 py-2 border rounded"
+                                                />
+                                                <button type="submit" className="w-full bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                                                    Get Info
+                                                </button>
+                                            </form>
+                                            {creatorDetails && (
+                                                <div className="mt-4 p-4 bg-gray-50 rounded">
+                                                    <p>Name: {creatorDetails.name}</p>
+                                                    <p>Registered: {creatorDetails.isRegistered ? 'Yes' : 'No'}</p>
+                                                    <p>Verified: {creatorDetails.isVerified ? 'Yes' : 'No'}</p>
+                                                    <p>Total Tips: {creatorDetails.totalTipsReceived} ETH</p>
+                                                    <p>Current Balance: {creatorDetails.currentBalance} ETH</p>
+                                                    <p>Registration Time: {creatorDetails.registrationTime}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <button
+                                                onClick={withdrawTips}
+                                                className="w-full bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                                            >
+                                                Withdraw Tips
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.22.5/babel.min.js"></script>
+</body>
+</html>
