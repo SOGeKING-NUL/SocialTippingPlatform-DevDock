@@ -66,11 +66,9 @@ A decentralized application (DApp) for tipping content creators on the blockchai
    npm install
    ```
 3. Deploy the contract:
-   ```contract already deployed with address: 0xE017F43975b2A1AC018AfBA4076A2b444EddAc8F 
-   ```
-4. Run the frontend:
-   ```bash
-run index.html   ```
+   contract already deployed with address: 0xE017F43975b2A1AC018AfBA4076A2b444EddAc8F 
+   
+4. Run the frontend:  run index.html   
 ---
 
 ## Deployment
