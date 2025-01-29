@@ -59,22 +59,18 @@ A decentralized application (DApp) for tipping content creators on the blockchai
 ### Steps
 1. Clone the repo:
    ```bash
-   git clone https://github.com/your-username/tipping-dapp.git
-   cd tipping-dapp
+   git clone https://github.com/SOGeKING-NUL/SocialTippingPlatform-DevDock.ai
    ```
 2. Install dependencies:
    ```bash
-   cd smart-contract && npm install
-   cd ../frontend && npm install
+   npm install
    ```
 3. Deploy the contract:
-   ```bash
-   npx hardhat run scripts/deploy.js --network localhost
+   ```contract already deployed with address: 0xE017F43975b2A1AC018AfBA4076A2b444EddAc8F 
    ```
 4. Run the frontend:
    ```bash
-   npm start
-   ```
+run index.html   ```
 ---
 
 ## Deployment
