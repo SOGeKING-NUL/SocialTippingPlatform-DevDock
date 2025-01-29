@@ -1,5 +1,6 @@
 # SocialTippingPlatform-DevDock.ai
 PS: Create a social tipping platform where anyone can tip for content creators. The EVM Smart contract should keep track of tokens for each content creators.
+![image](https://github.com/user-attachments/assets/49ffbfeb-2485-49b7-a390-86a966e15d2d)
 
 
 # Tipping DApp - Smart Contract & Frontend
