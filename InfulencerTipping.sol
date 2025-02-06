@@ -32,7 +32,7 @@ contract TippingProxy{
 
     }
     
-    function Implementation() external view onlyAdmin returns(address){
+    function implementation() external view returns(address){
         return _getImplementation();
     }
 
@@ -71,7 +71,7 @@ contract TippingProxy{
 }
 
 
-contract TippingImplementationV1 in ReentrancyGuard, Pausable, AccessControl{
+contract TippingImplementationV1 is ReentrancyGuard, Pausable, AccessControl{
 
     using Address for address payable;
 
@@ -79,7 +79,7 @@ contract TippingImplementationV1 in ReentrancyGuard, Pausable, AccessControl{
 
     struct Creator{
         string name;
-        string isRegistered;
+        bool isRegistered;
         uint256 totaTipsRecieved;
         uint256 registrationTime;
         uint256 lastWithdrawlTime;
@@ -89,22 +89,23 @@ contract TippingImplementationV1 in ReentrancyGuard, Pausable, AccessControl{
     mapping(address => uint256) public creatorBalance; //outisde the struct for gas efficiency
 
     constructor(){
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender) //most powder
-        _grantRole(ADMIN_ROLE, msg.sender)// for doing tasks like pausing contract, implemeting etc...
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender); //most powder
+        _grantRole(ADMIN_ROLE, msg.sender);     // for doing tasks like pausing contract, implemeting etc...
     }
     
     modifier onlyRegisteredCreator(){
-        require(!creators[msg.sender].isRegistered, "not registred");
+        require(creators[msg.sender].isRegistered, "not registred");
+        _;
     }
 
     function registerCreator(string calldata name) external{
-        require(creators[msg.sender].isRegistered, "user already registered");
+        require(!creators[msg.sender].isRegistered, "user already registered");
         require(bytes(name).length >0 && bytes(name).length <=50, "invalid name");
 
         creators[msg.sender]= Creator({
             name: name,
             isRegistered: true;
-            totalTipsRecieved: 0,
+            totalTipsReceived: 0,
             registrationTime: block.timestamp,
             lastWithdrawlTime: 0
         });
@@ -113,13 +114,35 @@ contract TippingImplementationV1 in ReentrancyGuard, Pausable, AccessControl{
     function tipCreator(address creator)external payable nonReentrant whenNotPaused{
         require(msg.value>0, "no value sent");
         require(creators[creator].isRegistered, "creator not registered");
-        require(!creator = msg.sender, "cant tip yourself");
+        require(creator != msg.sender, "cant tip yourself");
 
-        creatorBalance += msg.value;
+        creatorBalance[creator] += msg.value;
         creators[creator].totaTipsRecieved += msg.value;
     }
 
-    function withdrawTips(){}
+    function withdrawTips() external nonReentrant onlyRegisteredCreator whenNotPaused{
+        uint256 amount= creatorBalance[msg.sender];
+        require(amount >0, "no tip to withdraw");
 
-    function getCreatorDetials(){}
+        creators[msg.sender].lastWithdrawlTime = block.timestamp;
+        creatorBalance[msg.sender]= 0;
+        payable(msg.sender).sendValue(amount);
+    }
+
+    function getCreatorDetials(address creator) external view returns(
+        string memory name,
+        bool isRegistered,
+        uint256 totalTipsReceived,
+        uint256 registrationTime,
+        uint256 lastWithdrawlTime
+    ){
+        Creator memory c= creators[creator];
+        return{
+            c.name,
+            c.isRegistered,
+            totalTipsReceived,
+            c,registrationTime,
+            c.lastWithdrawlTime
+        }
+    }
 }
