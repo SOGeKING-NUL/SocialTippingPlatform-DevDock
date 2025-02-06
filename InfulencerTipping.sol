@@ -71,12 +71,53 @@ contract TippingProxy{
 }
 
 
-contract TippingImplementationV1{
-    constructor(){}
+contract TippingImplementationV1 in ReentrancyGuard, Pausable, AccessControl{
 
-    function registerCreator(){}
+    using Address for address payable;
 
-    function sendTip(){}
+    bytes32 private constant ADMIN_ROLE= keccak256("ADMIN_ROLE");
+
+    struct Creator{
+        string name;
+        string isRegistered;
+        uint256 totaTipsRecieved;
+        uint256 registrationTime;
+        uint256 lastWithdrawlTime;
+    }
+
+    mapping(address=> Creator) public creators;
+    mapping(address => uint256) public creatorBalance; //outisde the struct for gas efficiency
+
+    constructor(){
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender) //most powder
+        _grantRole(ADMIN_ROLE, msg.sender)// for doing tasks like pausing contract, implemeting etc...
+    }
+    
+    modifier onlyRegisteredCreator(){
+        require(!creators[msg.sender].isRegistered, "not registred");
+    }
+
+    function registerCreator(string calldata name) external{
+        require(creators[msg.sender].isRegistered, "user already registered");
+        require(bytes(name).length >0 && bytes(name).length <=50, "invalid name");
+
+        creators[msg.sender]= Creator({
+            name: name,
+            isRegistered: true;
+            totalTipsRecieved: 0,
+            registrationTime: block.timestamp,
+            lastWithdrawlTime: 0
+        });
+    }
+
+    function tipCreator(address creator)external payable nonReentrant whenNotPaused{
+        require(msg.value>0, "no value sent");
+        require(creators[creator].isRegistered, "creator not registered");
+        require(!creator = msg.sender, "cant tip yourself");
+
+        creatorBalance += msg.value;
+        creators[creator].totaTipsRecieved += msg.value;
+    }
 
     function withdrawTips(){}
 
